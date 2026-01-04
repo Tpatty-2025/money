@@ -11,6 +11,7 @@
         input, select, button { margin: 5px 0; padding: 10px; width: 100%; box-sizing: border-box; }
         button { background-color: #27ae60; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #219150; }
+        .clear-btn { background-color: #95a5a6; margin-top: 10px; }
         table { width: 100%; border-collapse: collapse; background: white; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         .type-income { color: #27ae60; }
@@ -19,7 +20,7 @@
 </head>
 <body>
 
-    <h2>💰 2026記帳本</h2>
+    <h2>💰 2026記帳本 💰</h2>
 
     <div class="summary">
         <div>總收入: <span id="total-income">$0</span></div>
@@ -33,9 +34,10 @@
             <option value="expense">支出</option>
             <option value="income">收入</option>
         </select>
-        <input type="text" id="item" placeholder="品項名稱（如：午餐）" required>
+        <input type="text" id="item" placeholder="品項名稱" required>
         <input type="number" id="amount" placeholder="金額" required>
         <button type="submit">新增紀錄</button>
+        <button type="button" class="clear-btn" onclick="clearAll()">清空所有紀錄</button>
     </form>
 
     <table id="record-table">
@@ -47,51 +49,72 @@
                 <th>金額</th>
             </tr>
         </thead>
-        <tbody id="record-list">
-            </tbody>
+        <tbody id="record-list"></tbody>
     </table>
 
     <script>
         const form = document.getElementById('record-form');
         const list = document.getElementById('record-list');
-        let totalIn = 0;
-        let totalOut = 0;
+        
+        // 1. 初始化資料：嘗試從 LocalStorage 讀取，若無則為空陣列
+        let records = JSON.parse(localStorage.getItem('myRecords')) || [];
+
+        // 網頁開啟時先執行一次渲染
+        renderRecords();
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // 取得輸入值
-            const date = document.getElementById('date').value;
-            const type = document.getElementById('type').value;
-            const item = document.getElementById('item').value;
-            const amount = parseFloat(document.getElementById('amount').value);
+            const newRecord = {
+                date: document.getElementById('date').value,
+                type: document.getElementById('type').value,
+                item: document.getElementById('item').value,
+                amount: parseFloat(document.getElementById('amount').value)
+            };
 
-            // 更新統計金額
-            if (type === 'income') {
-                totalIn += amount;
-            } else {
-                totalOut += amount;
-            }
-            updateSummary();
-
-            // 新增表格列
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${date}</td>
-                <td class="${type === 'income' ? 'type-income' : 'type-expense'}">${type === 'income' ? '收入' : '支出'}</td>
-                <td>${item}</td>
-                <td>$${amount}</td>
-            `;
-            list.appendChild(row);
-
-            // 重設表單
+            // 2. 存入陣列並儲存到 LocalStorage
+            records.push(newRecord);
+            saveAndRender();
             form.reset();
         });
 
-        function updateSummary() {
+        function saveAndRender() {
+            // 將陣列轉為 JSON 字串存入
+            localStorage.setItem('myRecords', JSON.stringify(records));
+            renderRecords();
+        }
+
+        function renderRecords() {
+            list.innerHTML = '';
+            let totalIn = 0;
+            let totalOut = 0;
+
+            records.forEach((rec) => {
+                if (rec.type === 'income') totalIn += rec.amount;
+                else totalOut += rec.amount;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${rec.date}</td>
+                    <td class="${rec.type === 'income' ? 'type-income' : 'type-expense'}">
+                        ${rec.type === 'income' ? '收入' : '支出'}
+                    </td>
+                    <td>${rec.item}</td>
+                    <td>$${rec.amount}</td>
+                `;
+                list.appendChild(row);
+            });
+
             document.getElementById('total-income').innerText = `$${totalIn}`;
             document.getElementById('total-expense').innerText = `$${totalOut}`;
             document.getElementById('net-balance').innerText = `$${totalIn - totalOut}`;
+        }
+
+        function clearAll() {
+            if (confirm('確定要刪除所有紀錄嗎？')) {
+                records = [];
+                saveAndRender();
+            }
         }
     </script>
 </body>
