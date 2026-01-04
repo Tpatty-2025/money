@@ -124,12 +124,14 @@
         });
 
         function deleteRecord(id) {
-            if (confirm('確定要刪除這筆紀錄嗎？')) {
-                records = records.filter(rec => rec.id !== id);
-                saveAndRender();
-            }
-        }
-
+    if (confirm('確定要刪除這筆紀錄嗎？')) {
+        // 重要：確保比較時 ID 類型一致（這裡 Date.now() 是數字）
+        records = records.filter(rec => rec.id !== id);
+        
+        // 儲存並重新渲染畫面
+        saveAndRender();
+    }
+}
         function saveAndRender() {
             localStorage.setItem('myRecords', JSON.stringify(records));
             renderRecords();
