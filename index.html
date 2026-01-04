@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>我的簡易記帳本</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; background-color: #f4f7f6; }
+        .summary { display: flex; justify-content: space-between; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .balance { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
+        form { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        input, select, button { margin: 5px 0; padding: 10px; width: 100%; box-sizing: border-box; }
+        button { background-color: #27ae60; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #219150; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .type-income { color: #27ae60; }
+        .type-expense { color: #e74c3c; }
+    </style>
+</head>
+<body>
+
+    <h2>💰 我的記帳本</h2>
+
+    <div class="summary">
+        <div>總收入: <span id="total-income">$0</span></div>
+        <div>總支出: <span id="total-expense">$0</span></div>
+        <div class="balance">當前餘額: <span id="net-balance">$0</span></div>
+    </div>
+
+    <form id="record-form">
+        <input type="date" id="date" required>
+        <select id="type">
+            <option value="expense">支出</option>
+            <option value="income">收入</option>
+        </select>
+        <input type="text" id="item" placeholder="品項名稱（如：午餐）" required>
+        <input type="number" id="amount" placeholder="金額" required>
+        <button type="submit">新增紀錄</button>
+    </form>
+
+    <table id="record-table">
+        <thead>
+            <tr>
+                <th>日期</th>
+                <th>類型</th>
+                <th>品項</th>
+                <th>金額</th>
+            </tr>
+        </thead>
+        <tbody id="record-list">
+            </tbody>
+    </table>
+
+    <script>
+        const form = document.getElementById('record-form');
+        const list = document.getElementById('record-list');
+        let totalIn = 0;
+        let totalOut = 0;
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // 取得輸入值
+            const date = document.getElementById('date').value;
+            const type = document.getElementById('type').value;
+            const item = document.getElementById('item').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            // 更新統計金額
+            if (type === 'income') {
+                totalIn += amount;
+            } else {
+                totalOut += amount;
+            }
+            updateSummary();
+
+            // 新增表格列
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${date}</td>
+                <td class="${type === 'income' ? 'type-income' : 'type-expense'}">${type === 'income' ? '收入' : '支出'}</td>
+                <td>${item}</td>
+                <td>$${amount}</td>
+            `;
+            list.appendChild(row);
+
+            // 重設表單
+            form.reset();
+        });
+
+        function updateSummary() {
+            document.getElementById('total-income').innerText = `$${totalIn}`;
+            document.getElementById('total-expense').innerText = `$${totalOut}`;
+            document.getElementById('net-balance').innerText = `$${totalIn - totalOut}`;
+        }
+    </script>
+</body>
+</html>
