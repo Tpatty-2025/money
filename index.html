@@ -85,10 +85,11 @@
         }
 
         function renderRecords() {
+            document.getElementById('date').valueAsDate = new Date();
             list.innerHTML = '';
             let totalIn = 0;
             let totalOut = 0;
-
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
             records.forEach((rec) => {
                 if (rec.type === 'income') totalIn += rec.amount;
                 else totalOut += rec.amount;
