@@ -82,8 +82,9 @@
     </table>
 
     <script>
-    function exportToExcel() {
+        function exportToCSV() {
     const selectedMonth = document.getElementById('view-month').value;
+    // 只匯出目前畫面上看到的（該月份）紀錄
     const filteredRecords = records.filter(rec => rec.date.startsWith(selectedMonth));
 
     if (filteredRecords.length === 0) {
@@ -91,36 +92,29 @@
         return;
     }
 
-    // 1. 準備資料陣列 (第一列是標題)
-    const data = [
-        ["日期", "類型", "品項", "金額"]
-    ];
+    // 1. 定義標題列
+    let csvContent = "\ufeff"; // 加入 BOM 確保 Excel 開啟中文不亂碼
+    csvContent += "日期,類型,品項,金額\n";
 
-    let totalIn = 0;
-    let totalOut = 0;
-
-    // 2. 放入明細資料
+    // 2. 逐行加入資料
     filteredRecords.forEach(rec => {
         const typeText = rec.type === 'income' ? '收入' : '支出';
-        if (rec.type === 'income') totalIn += rec.amount;
-        else totalOut += rec.amount;
-        data.push([rec.date, typeText, rec.item, rec.amount]);
+        csvContent += `${rec.date},${typeText},${rec.item},${rec.amount}\n`;
     });
 
-    // 3. 放入統計摘要 (空一行後加入)
-    data.push([]); 
-    data.push(["", "", "總收入", totalIn]);
-    data.push(["", "", "總支出", totalOut]);
-    data.push(["", "", "當月結餘", totalIn - totalOut]);
-
-    // 4. 使用 SheetJS 產生 Excel 檔案
-    const worksheet = XLSX.utils.aoa_to_sheet(data); // 將陣列轉為工作表
-    const workbook = XLSX.utils.book_new();         // 建立新的活頁簿
-    XLSX.utils.book_append_sheet(workbook, worksheet, "記帳報表"); // 加入工作表
-
-    // 5. 下載檔案
-    XLSX.writeFile(workbook, `記帳報表_${selectedMonth}.xlsx`);
-    }
+    // 3. 建立下載連結
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `記帳紀錄_${selectedMonth}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
         const form = document.getElementById('record-form');
         const list = document.getElementById('record-list');
         const viewMonthInput = document.getElementById('view-month');
