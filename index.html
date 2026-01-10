@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.min.js"></script>
     <meta charset="UTF-8">
     <title>珮璇的記帳本</title>
     <style>
@@ -82,9 +83,8 @@
     </table>
 
     <script>
-        function exportToCSV() {
+        function exportToExcel() {
     const selectedMonth = document.getElementById('view-month').value;
-    // 篩選出目前選取月份的紀錄
     const filteredRecords = records.filter(rec => rec.date.startsWith(selectedMonth));
 
     if (filteredRecords.length === 0) {
@@ -92,40 +92,35 @@
         return;
     }
 
-    // 1. 初始化 CSV 內容，加入 BOM (防止中文亂碼)
-    let csvContent = "\ufeff"; 
-    csvContent += "日期,類型,品項,金額\n";
+    // 1. 準備資料陣列 (第一列是標題)
+    const data = [
+        ["日期", "類型", "品項", "金額"]
+    ];
 
     let totalIn = 0;
     let totalOut = 0;
 
-    // 2. 逐行加入每筆帳目資料並累計金額
+    // 2. 放入明細資料
     filteredRecords.forEach(rec => {
         const typeText = rec.type === 'income' ? '收入' : '支出';
         if (rec.type === 'income') totalIn += rec.amount;
         else totalOut += rec.amount;
-        
-        csvContent += `${rec.date},${typeText},${rec.item},${rec.amount}\n`;
+        data.push([rec.date, typeText, rec.item, rec.amount]);
     });
 
-    // 3. 在最下方加入統計摘要
-    csvContent += "\n"; // 先空一行區隔明細與總結
-    csvContent += `,,,總收入,${totalIn}\n`;
-    csvContent += `,,,總支出,${totalOut}\n`;
-    csvContent += `,,,當月結餘,${totalIn - totalOut}\n`;
+    // 3. 放入統計摘要 (空一行後加入)
+    data.push([]); 
+    data.push(["", "", "總收入", totalIn]);
+    data.push(["", "", "總支出", totalOut]);
+    data.push(["", "", "當月結餘", totalIn - totalOut]);
 
-    // 4. 建立下載連結並觸發
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", `記帳報表_${selectedMonth}.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // 4. 使用 SheetJS 產生 Excel 檔案
+    const worksheet = XLSX.utils.aoa_to_sheet(data); // 將陣列轉為工作表
+    const workbook = XLSX.utils.book_new();         // 建立新的活頁簿
+    XLSX.utils.book_append_sheet(workbook, worksheet, "記帳報表"); // 加入工作表
+
+    // 5. 下載檔案
+    XLSX.writeFile(workbook, `記帳報表_${selectedMonth}.xlsx`);
 }
         const form = document.getElementById('record-form');
         const list = document.getElementById('record-list');
