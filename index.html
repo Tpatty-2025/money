@@ -84,7 +84,7 @@
     <script>
         function exportToCSV() {
     const selectedMonth = document.getElementById('view-month').value;
-    // 只匯出目前畫面上看到的（該月份）紀錄
+    // 篩選出目前選取月份的紀錄
     const filteredRecords = records.filter(rec => rec.date.startsWith(selectedMonth));
 
     if (filteredRecords.length === 0) {
@@ -92,23 +92,35 @@
         return;
     }
 
-    // 1. 定義標題列
-    let csvContent = "\ufeff"; // 加入 BOM 確保 Excel 開啟中文不亂碼
+    // 1. 初始化 CSV 內容，加入 BOM (防止中文亂碼)
+    let csvContent = "\ufeff"; 
     csvContent += "日期,類型,品項,金額\n";
 
-    // 2. 逐行加入資料
+    let totalIn = 0;
+    let totalOut = 0;
+
+    // 2. 逐行加入每筆帳目資料並累計金額
     filteredRecords.forEach(rec => {
         const typeText = rec.type === 'income' ? '收入' : '支出';
+        if (rec.type === 'income') totalIn += rec.amount;
+        else totalOut += rec.amount;
+        
         csvContent += `${rec.date},${typeText},${rec.item},${rec.amount}\n`;
     });
 
-    // 3. 建立下載連結
+    // 3. 在最下方加入統計摘要
+    csvContent += "\n"; // 先空一行區隔明細與總結
+    csvContent += `,,,總收入,${totalIn}\n`;
+    csvContent += `,,,總支出,${totalOut}\n`;
+    csvContent += `,,,當月結餘,${totalIn - totalOut}\n`;
+
+    // 4. 建立下載連結並觸發
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     
     link.setAttribute("href", url);
-    link.setAttribute("download", `記帳紀錄_${selectedMonth}.csv`);
+    link.setAttribute("download", `記帳報表_${selectedMonth}.csv`);
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
