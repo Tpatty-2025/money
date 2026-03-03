@@ -6,13 +6,11 @@
     <title>珮璇的記帳本</title>
     <style>
         body { font-family: sans-serif; max-width: 750px; margin: 20px auto; padding: 20px; background-color: #f4f7f6; }
-        .summary { display: flex; justify-content: space-between; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .summary { display: flex; justify-content: space-between; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; align-items: center; flex-wrap: wrap; gap:10px;}
         .balance { font-size: 1.2em; font-weight: bold; color: #2c3e50; }
-        
-        /* 月份切換區 */
+        .year-box { background:#fffbe6; }
         .month-filter { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
         .month-filter h3 { margin: 0; flex-grow: 1; }
-        
         form { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
         .form-group { display: flex; flex-direction: column; }
         input, select, button { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
@@ -20,7 +18,6 @@
         button:hover { background-color: #219150; }
         .del-btn { background-color: #ff7675; padding: 5px 10px; font-size: 12px; }
         .clear-btn { background-color: #95a5a6; grid-column: span 5; margin-top: 10px; }
-        
         table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
         th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
         th { background-color: #ecf0f1; }
@@ -31,196 +28,233 @@
 </head>
 <body>
 
-    <h2>💰記帳本💰</h2>
+<h2>💰記帳本💰</h2>
 
-    <div class="month-filter">
-        <h3>月份檢視</h3>
-        <input type="month" id="view-month" onchange="changeViewMonth()">
-        <button type="button" onclick="exportToCSV()" style="background-color: #3498db; margin-left: 10px;">匯出本月 Excel</button>
+<!-- 年度統計固定區 -->
+<div class="summary year-box">
+    <div>
+        <label>年度統計：</label>
+        <select id="view-year" onchange="renderYearSummary()"></select>
     </div>
+    <div>年度收入: <span id="year-income">$0</span></div>
+    <div>年度支出: <span id="year-expense">$0</span></div>
+    <div class="balance">年度結餘: <span id="year-balance">$0</span></div>
+</div>
 
-    <div class="summary">
-        <div>該月收入: <span id="total-income">$0</span></div>
-        <div>該月支出: <span id="total-expense">$0</span></div>
-        <div class="balance">該月結餘: <span id="net-balance">$0</span></div>
+<!-- 月份切換 -->
+<div class="month-filter">
+    <h3>月份檢視</h3>
+    <input type="month" id="view-month" onchange="renderRecords()">
+    <button type="button" onclick="exportToCSV()" style="background-color:#3498db;">匯出本月 Excel</button>
+</div>
+
+<!-- 月統計 -->
+<div class="summary">
+    <div>該月收入: <span id="total-income">$0</span></div>
+    <div>該月支出: <span id="total-expense">$0</span></div>
+    <div class="balance">該月結餘: <span id="net-balance">$0</span></div>
+</div>
+
+<!-- 表單 -->
+<form id="record-form">
+    <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="date" required>
     </div>
+    <div class="form-group">
+        <label>類型</label>
+        <select id="type">
+            <option value="expense">支出</option>
+            <option value="income">收入</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>品項</label>
+        <input type="text" id="item" required>
+    </div>
+    <div class="form-group">
+        <label>金額</label>
+        <input type="number" id="amount" required>
+    </div>
+    <button type="submit">新增</button>
+    <button type="button" class="clear-btn" onclick="clearAll()">全部清除 (謹慎操作)</button>
+</form>
 
-    <form id="record-form">
-        <div class="form-group">
-            <label>日期</label>
-            <input type="date" id="date" required>
-        </div>
-        <div class="form-group">
-            <label>類型</label>
-            <select id="type">
-                <option value="expense">支出</option>
-                <option value="income">收入</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>品項</label>
-            <input type="text" id="item" placeholder="品項" required>
-        </div>
-        <div class="form-group">
-            <label>金額</label>
-            <input type="number" id="amount" placeholder="金額" required>
-        </div>
-        <button type="submit">新增</button>
-        <button type="button" class="clear-btn" onclick="clearAll()">全部清除 (謹慎操作)</button>
-    </form>
+<!-- 表格 -->
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>類型</th>
+<th>品項</th>
+<th>金額</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody id="record-list"></tbody>
+</table>
 
-    <table id="record-table">
-        <thead>
-            <tr>
-                <th>日期</th>
-                <th>類型</th>
-                <th>品項</th>
-                <th>金額</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody id="record-list"></tbody>
-    </table>
+<script>
 
-    <script>
-        function exportToCSV() {
-    const selectedMonth = document.getElementById('view-month').value;
-    // 只匯出目前畫面上看到的（該月份）紀錄
-    const filteredRecords = records.filter(rec => rec.date.startsWith(selectedMonth));
+let records = JSON.parse(localStorage.getItem('myRecords')) || [];
 
-    if (filteredRecords.length === 0) {
-        alert("本月沒有資料可以匯出喔！");
+const form = document.getElementById('record-form');
+const list = document.getElementById('record-list');
+const viewMonthInput = document.getElementById('view-month');
+
+const today = new Date();
+viewMonthInput.value = today.toISOString().slice(0,7);
+document.getElementById('date').valueAsDate = today;
+
+initYearSelector();
+renderRecords();
+renderYearSummary();
+
+/* ===== 年度選單初始化 ===== */
+function initYearSelector(){
+    const yearSelect = document.getElementById('view-year');
+    yearSelect.innerHTML = '';
+
+    const years = new Set();
+    records.forEach(rec => years.add(rec.date.slice(0,4)));
+
+    if(years.size === 0){
+        years.add(new Date().getFullYear().toString());
+    }
+
+    [...years].sort().forEach(y=>{
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.innerText = y;
+        yearSelect.appendChild(opt);
+    });
+
+    yearSelect.value = new Date().getFullYear().toString();
+}
+
+/* ===== 年度統計 ===== */
+function renderYearSummary(){
+    const year = document.getElementById('view-year').value;
+    let income = 0;
+    let expense = 0;
+
+    records.forEach(rec=>{
+        if(rec.date.startsWith(year)){
+            if(rec.type === 'income') income += rec.amount;
+            else expense += rec.amount;
+        }
+    });
+
+    document.getElementById('year-income').innerText = `$${income}`;
+    document.getElementById('year-expense').innerText = `$${expense}`;
+    document.getElementById('year-balance').innerText = `$${income - expense}`;
+}
+
+/* ===== 月顯示 ===== */
+function renderRecords(){
+    list.innerHTML='';
+    let totalIn=0,totalOut=0;
+    const selectedMonth=viewMonthInput.value;
+
+    const filtered=records
+        .filter(rec=>rec.date.startsWith(selectedMonth))
+        .sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+    if(filtered.length===0){
+        list.innerHTML='<tr><td colspan="5" class="no-data">本月尚無紀錄</td></tr>';
+    }else{
+        filtered.forEach(rec=>{
+            if(rec.type==='income') totalIn+=rec.amount;
+            else totalOut+=rec.amount;
+
+            const row=document.createElement('tr');
+            row.innerHTML=`
+                <td>${rec.date}</td>
+                <td class="${rec.type==='income'?'type-income':'type-expense'}">
+                    ${rec.type==='income'?'收入':'支出'}
+                </td>
+                <td>${rec.item}</td>
+                <td>$${rec.amount}</td>
+                <td><button class="del-btn" onclick="deleteRecord(${rec.id})">刪除</button></td>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    document.getElementById('total-income').innerText=`$${totalIn}`;
+    document.getElementById('total-expense').innerText=`$${totalOut}`;
+    document.getElementById('net-balance').innerText=`$${totalIn-totalOut}`;
+}
+
+/* ===== 新增 ===== */
+form.addEventListener('submit',function(e){
+    e.preventDefault();
+
+    const newRecord={
+        id:Date.now(),
+        date:document.getElementById('date').value,
+        type:document.getElementById('type').value,
+        item:document.getElementById('item').value,
+        amount:parseFloat(document.getElementById('amount').value)
+    };
+
+    records.push(newRecord);
+    saveAndRender();
+    form.reset();
+    document.getElementById('date').valueAsDate=new Date();
+});
+
+/* ===== 刪除 ===== */
+function deleteRecord(id){
+    if(confirm('確定要刪除嗎？')){
+        records=records.filter(rec=>rec.id!==id);
+        saveAndRender();
+    }
+}
+
+/* ===== 清除 ===== */
+function clearAll(){
+    if(confirm('警告：將刪除所有資料，確定嗎？')){
+        records=[];
+        saveAndRender();
+    }
+}
+
+/* ===== 儲存整合 ===== */
+function saveAndRender(){
+    localStorage.setItem('myRecords',JSON.stringify(records));
+    initYearSelector();
+    renderYearSummary();
+    renderRecords();
+}
+
+/* ===== 匯出 CSV ===== */
+function exportToCSV(){
+    const selectedMonth=viewMonthInput.value;
+    const filtered=records.filter(rec=>rec.date.startsWith(selectedMonth));
+
+    if(filtered.length===0){
+        alert("本月沒有資料可以匯出！");
         return;
     }
 
-    // 1. 定義標題列
-    let csvContent = "\ufeff"; // 加入 BOM 確保 Excel 開啟中文不亂碼
-    csvContent += "日期,類型,品項,金額\n";
-
-    // 2. 逐行加入資料
-    filteredRecords.forEach(rec => {
-        const typeText = rec.type === 'income' ? '收入' : '支出';
-        csvContent += `${rec.date},${typeText},${rec.item},${rec.amount}\n`;
+    let csv="\ufeff日期,類型,品項,金額\n";
+    filtered.forEach(rec=>{
+        const typeText=rec.type==='income'?'收入':'支出';
+        csv+=`${rec.date},${typeText},${rec.item},${rec.amount}\n`;
     });
 
-    // 3. 建立下載連結
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", `記帳紀錄_${selectedMonth}.csv`);
-    link.style.visibility = 'hidden';
-    
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download=`記帳紀錄_${selectedMonth}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
-        const form = document.getElementById('record-form');
-        const list = document.getElementById('record-list');
-        const viewMonthInput = document.getElementById('view-month');
-        
-        // 1. 初始化資料與當前月份
-        let records = JSON.parse(localStorage.getItem('myRecords')) || [];
-        
-        // 設定初始檢視月份為今天 (格式 YYYY-MM)
-        const today = new Date();
-        const currentMonthString = today.toISOString().slice(0, 7); 
-        viewMonthInput.value = currentMonthString;
-        document.getElementById('date').valueAsDate = today;
 
-        renderRecords();
+</script>
 
-        // 監聽月份切換
-        function changeViewMonth() {
-            renderRecords();
-        }
-
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const dateVal = document.getElementById('date').value;
-            
-            const newRecord = {
-                id: Date.now(),
-                date: dateVal,
-                type: document.getElementById('type').value,
-                item: document.getElementById('item').value,
-                amount: parseFloat(document.getElementById('amount').value)
-            };
-
-            records.push(newRecord);
-            
-            // 自動切換到新增資料的那個月份，方便立刻看到
-            viewMonthInput.value = dateVal.slice(0, 7);
-            
-            saveAndRender();
-            form.reset();
-            document.getElementById('date').valueAsDate = new Date();
-        });
-
-        function deleteRecord(id) {
-    if (confirm('確定要刪除這筆紀錄嗎？')) {
-        // 重要：確保比較時 ID 類型一致（這裡 Date.now() 是數字）
-        records = records.filter(rec => rec.id !== id);
-        
-        // 儲存並重新渲染畫面
-        saveAndRender();
-    }
-}
-        function saveAndRender() {
-            localStorage.setItem('myRecords', JSON.stringify(records));
-            renderRecords();
-        }
-
-        function renderRecords() {
-            list.innerHTML = '';
-            let totalIn = 0;
-            let totalOut = 0;
-
-            const selectedMonth = viewMonthInput.value; // 例如 "2024-05"
-
-            // 2. 過濾與排序
-            // 先過濾出日期開頭符合 YYYY-MM 的紀錄
-            const filteredRecords = records.filter(rec => rec.date.startsWith(selectedMonth));
-            
-            // 排序 (新到舊)
-            filteredRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            if (filteredRecords.length === 0) {
-                list.innerHTML = '<tr><td colspan="5" class="no-data">本月尚無紀錄</td></tr>';
-            } else {
-                filteredRecords.forEach((rec) => {
-                    if (rec.type === 'income') totalIn += rec.amount;
-                    else totalOut += rec.amount;
-
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${rec.date}</td>
-                        <td class="${rec.type === 'income' ? 'type-income' : 'type-expense'}">
-                            ${rec.type === 'income' ? '收入' : '支出'}
-                        </td>
-                        <td>${rec.item}</td>
-                        <td>$${rec.amount}</td>
-                        <td>
-                            <button class="del-btn" onclick="deleteRecord(${rec.id})">刪除</button>
-                        </td>
-                    `;
-                    list.appendChild(row);
-                });
-            }
-
-            // 更新統計數值 (僅針對篩選後的月份)
-            document.getElementById('total-income').innerText = `$${totalIn}`;
-            document.getElementById('total-expense').innerText = `$${totalOut}`;
-            document.getElementById('net-balance').innerText = `$${totalIn - totalOut}`;
-        }
-
-        function clearAll() {
-            if (confirm('警告：這將永久刪除「所有月份」的紀錄，確定嗎？')) {
-                records = [];
-                saveAndRender();
-            }
-        }
-    </script>
 </body>
 </html>
